@@ -2,6 +2,9 @@
 
 A PhoneGap Hello World template
 
+## webSQL
+* official documentation "https://cordova.apache.org/docs/en/1.7.0/cordova/storage/storage.opendatabase.html"
+
 ## Usage
 
 #### PhoneGap CLI
