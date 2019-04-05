@@ -1,49 +1,90 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-var app = {
-    // Application Constructor
-    initialize: function() {
-        this.bindEvents();
-    },
-    // Bind Event Listeners
-    //
-    // Bind any events that are required on startup. Common events are:
-    // 'load', 'deviceready', 'offline', and 'online'.
-    bindEvents: function() {
-        document.addEventListener('deviceready', this.onDeviceReady, false);
-    },
-    // deviceready Event Handler
-    //
-    // The scope of 'this' is the event. In order to call the 'receivedEvent'
-    // function, we must explicitly call 'app.receivedEvent(...);'
-    onDeviceReady: function() {
-        app.receivedEvent('deviceready');
-    },
-    // Update DOM on a Received Event
-    receivedEvent: function(id) {
-        var parentElement = document.getElementById(id);
-        var listeningElement = parentElement.querySelector('.listening');
-        var receivedElement = parentElement.querySelector('.received');
+        /*
+			dbname: mydb
+			table:	1. trans_log : id_trans(int), key(varchar), notes(text)
+		*/
+        // window.openDatabase("database-name","version","database description","database size in bytes")
+        var db = window.openDatabase("mydb", "1.0", "my experimental database", 1000000); //will create database or open it
+      	document.addEventListener("deviceready", onDeviceReady, false);
+		function onDeviceReady() {
+            // Create Table
+            db.transaction(function(tx){
+				tx.executeSql('CREATE TABLE IF NOT EXISTS trans_log (id_trans INTEGER PRIMARY KEY AUTOINCREMENT, key VARCHAR, notes TEXT)');
+			}, errorCB, successCB);
+            // Select records
+            fetchData();
+		}
 
-        listeningElement.setAttribute('style', 'display:none;');
-        receivedElement.setAttribute('style', 'display:block;');
+        // Fetch all records
+        function fetchData(){
+            db.transaction(function(tx){
+				tx.executeSql("select * from trans_log",[],function(tx1,result){
+					var len = result.rows.length;
+					var ul = document.getElementById("list");
+					ul.innerHTML = '';
+					for (var i=0; i<len; i++){
+                        var id = result.rows.item(i).id_trans;
+                        var key = result.rows.item(i).key;
+                        var note = result.rows.item(i).notes;
 
-        console.log('Received Event: ' + id);
-    }
-};
+                        // Add list item
+						var text = "Id: " + id + " | Key: " + key + " | Note: " + note;
+						var li = document.createElement("li");
+                        li.appendChild(document.createTextNode(text));
+                        ul.appendChild(li);
+                    }
+				},errorCB);
+			}, errorCB, successCB);
+        }
+     
+        function insertData(){
+            db.transaction(function(tx){
+				var key = document.getElementById('key').value;
+				var note = document.getElementById('note').value;
+				tx.executeSql("INSERT INTO trans_log(key, notes) VALUES (?,?)",[key,note]);
+				fetchData();
+				document.getElementById('key').value = "";
+				document.getElementById('note').value = "";
+			}, errorCB, successCB);
+        }
+		function del(){
+			var k = document.getElementById('uKey').value;
+			deleteID(k);
+		}
+		function upd(){
+			var k = document.getElementById('uuKey').value;
+			var v = document.getElementById('uVal').value;
+			updateID(k,v);
+		}
+		function deleteID(userKey){
+            db.transaction(function(tx){
+				tx.executeSql("delete from trans_log where key = " + userKey);   
+				fetchData();
+			}, errorCB, successCB);
+        }
+		function updateID(userKey, valKey){
+            db.transaction(function(tx){
+				tx.executeSql("update trans_log set notes = '" + valKey + "' where key = '" + userKey + "'");   
+				fetchData();
+			}, errorCB, successCB);
+        }
+		function clearData(){
+            db.transaction(function(tx){
+				tx.executeSql("delete from trans_log");   
+				fetchData();
+			}, errorCB, successCB);
+        }
+		function resetData(){
+            db.transaction(function(tx){
+				tx.executeSql("delete from trans_log");   
+				tx.executeSql("update sqlite_sequence set seq = 0 where name = 'trans_log'");   
+				fetchData();
+			}, errorCB, successCB);
+        }
+
+		//-------------------------------------------
+        function errorCB(err) {
+            alert("Error processing SQL: "+err.code);
+        }
+        function successCB() {
+        //    alert("success!");
+        }		
